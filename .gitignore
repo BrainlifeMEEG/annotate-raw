@@ -1,5 +1,5 @@
-
 *.fif
 /out_*/
 /product.json
 /__pycache__/
+/tests/__pycache__/

@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 
 APP_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-CH_NAMES = ['MEG0111', 'MEG0112', 'EEG001']
+CH_NAMES = ['MEG0111', 'MEG0112', 'MEG0113', 'EEG001']
 SFREQ = 100.0
 DURATION = 60.0
 HEADER = 'subject,run,tag,dataset_id,onset,duration,description,channels'
@@ -20,7 +20,7 @@ HEADER = 'subject,run,tag,dataset_id,onset,duration,description,channels'
 
 def make_raw(path, meas_date=True, first_samp=0, annotations=None):
     rng = np.random.default_rng(0)
-    info = mne.create_info(CH_NAMES, SFREQ, ['mag', 'mag', 'eeg'])
+    info = mne.create_info(CH_NAMES, SFREQ, ['mag', 'mag', 'mag', 'eeg'])
     data = rng.standard_normal((len(CH_NAMES), int(DURATION * SFREQ))) * 1e-12
     raw = mne.io.RawArray(data, info, first_samp=first_samp, verbose=False)
     if meas_date:
@@ -303,3 +303,18 @@ def test_output_reloads_and_filename_convention(tmp_path, two_inputs):
         mne.io.read_raw_fif(str(out(tmp_path, n)), verbose=False)
     assert not (tmp_path / 'out_dir' / 'raw.fif').exists()
     assert (tmp_path / 'out_figs' / 'annotations_1.png').exists()
+
+
+def test_readme_example_table(tmp_path):
+    """The example table in README.md, verbatim (spaces after commas, trailing empty cells)."""
+    table = ('subject, run, tag,  onset, duration, description, channels\n'
+             ',        ,    ,     12.5,  2.0,      bad_muscle,\n'
+             '01,      3,   ,     40,    1.0,      bad_jump,    MEG0113;MEG0112\n'
+             '0*,      ,    rest, 0,     5,        bad_startup,\n')
+    files = [make_raw(tmp_path / n) for n in ('a.fif', 'b.fif')]
+    inputs = [entry('01', '3', ['rest']), entry('02', '1', [])]
+    proc, _ = run_app(tmp_path, cfg_for(files, inputs, table))
+    assert proc.returncode == 0, proc.stderr
+    assert annots(out(tmp_path, 1)) == [
+        (0.0, 5.0, 'bad_startup', ()), (12.5, 2.0, 'bad_muscle', ()), (40.0, 1.0, 'bad_jump', ('MEG0113', 'MEG0112'))]
+    assert annots(out(tmp_path, 2)) == [(12.5, 2.0, 'bad_muscle', ())]
