@@ -114,6 +114,10 @@ if isinstance(fnames, str):
 if not (isinstance(fnames, list) and fnames and all(isinstance(f, str) and f for f in fnames)):
     _fail(f"Invalid 'raw' config value: {config['raw']!r}. Must be a file path or a non-empty list of file paths.")
 
+not_files = [f for f in fnames if not os.path.isfile(f)]
+if not_files:
+    _fail(f"Input 'raw' file(s) not found: {', '.join(not_files)}")
+
 mode = config.get('mode') or 'append'
 if mode not in ('append', 'replace'):
     _fail(f"Invalid 'mode' config value: {mode!r}. Must be 'append' or 'replace'.")
@@ -248,7 +252,12 @@ for row in rows:
                         f"matched none of the {len(fnames)} input file(s).")
 
 # == LOAD INPUTS AND CHECK ROWS AGAINST THEM ==
-raws = [mne.io.read_raw_fif(fname, verbose=False) for fname in fnames]
+raws = []
+for i, fname in enumerate(fnames, start=1):
+    try:
+        raws.append(mne.io.read_raw_fif(fname, verbose=False))
+    except Exception as err:
+        _fail(f"Input {i} ({labels[i - 1]}) could not be read as an MNE raw .fif file: {err}")
 errors = []
 for i, raw in enumerate(raws):
     duration_total = raw.n_times / raw.info['sfreq']

@@ -31,7 +31,7 @@ The app generates:
 | `mode` | string | `"append"` | `"append"` keeps the annotations already in the file; `"replace"` discards them. In both modes, an input that no table row applies to is saved unchanged. |
 | `strict` | boolean | `false` | If `true`, a row that matches no input, or that starts after or runs past the end of a recording, is an error instead of a warning. |
 
-## The annotation table
+### The annotation table
 
 A delimited table with a **header row**. The delimiter is a tab if the header contains one, otherwise a comma. Blank lines and lines starting with `#` are ignored. Cells containing the delimiter must be quoted (`"..."`).
 
@@ -58,7 +58,7 @@ subject, run, tag,  onset, duration, description, channels
 - Row 2 applies to subject 01, run 3 only, on two channels.
 - Row 3 applies to subjects starting with `0` whose tags include `rest`.
 
-### Filter cells
+#### Filter cells
 
 Each filter cell is a wildcard pattern or a regular expression:
 
@@ -69,7 +69,7 @@ Each filter cell is a wildcard pattern or a regular expression:
 
 A row applies to an input only if **every** filled filter matches. Matching is case-sensitive except for `tag`.
 
-### Where an input's identity comes from
+#### Where an input's identity comes from
 
 1. The brainlife dataset metadata (`subject`, `session`, `run`, ...) and tags, passed to the app in `config.json`.
 2. For fields the metadata does not provide, BIDS entities in the file name (`sub-01_ses-meg_task-rest_run-02_meg.fif`). This makes local runs and BIDS-imported data work.

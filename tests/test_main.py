@@ -328,3 +328,15 @@ def test_mne_reserved_description_does_not_fail_output_check(tmp_path):
     assert proc.returncode == 0, proc.stderr
     descs = [a[2] for a in annots(tmp_path / 'out_dir' / 'raw.fif')]
     assert 'new' in descs and 'old_muscle' in descs
+
+
+def test_missing_or_unreadable_raw_exits_cleanly(tmp_path):
+    table = 'onset,duration,description\n1,1,a'
+    proc, msgs = run_app(tmp_path, {'raw': str(tmp_path / 'nope.fif'), 'annotations': table})
+    assert proc.returncode == 1 and 'Traceback' not in proc.stderr
+    assert any('not found' in m for m in messages(msgs, 'error'))
+
+    (tmp_path / 'garbage.fif').write_text('not a fif file')
+    proc, msgs = run_app(tmp_path, {'raw': str(tmp_path / 'garbage.fif'), 'annotations': table})
+    assert proc.returncode == 1 and 'Traceback' not in proc.stderr
+    assert any('could not be read' in m for m in messages(msgs, 'error'))
