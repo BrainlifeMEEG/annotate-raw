@@ -1,0 +1,5 @@
+
+*.fif
+/out_*/
+/product.json
+/__pycache__/
