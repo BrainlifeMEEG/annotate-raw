@@ -1,6 +1,6 @@
 # Annotate MEG/EEG Raw Data from a Table
 
-[![Run on Brainlife.io](https://img.shields.io/badge/Brainlife-annotate--raw-blue.svg)](https://brainlife.io/apps)
+[![Run on Brainlife.io](https://img.shields.io/badge/Brainlife-annotate--raw-blue.svg)](https://brainlife.io/app/6aeba162e5002a0fe6b0eef1)
 
 ## Description
 
@@ -15,11 +15,11 @@ The app generates:
 
 ## Inputs
 
-- **`raw`** (`neuro/meeg/mne/raw`): continuous raw MEG/EEG data to annotate; a single file or a list of files, each handled independently (required)
+- **`raw`** (`neuro/meeg/mne/raw`): continuous raw MEG/EEG data to annotate (required). On brainlife.io this is a single dataset per run; when run locally, `raw` may also be a list of files, each handled independently
 
 ## Outputs
 
-- **`out_dir/raw.fif`** (`neuro/meeg/mne/raw`): the annotated raw data. With several inputs, one `out_dir/raw_<n>.fif` per input, in input order
+- **`out_dir/raw.fif`** (`neuro/meeg/mne/raw`, tag `annotated`): the annotated raw data. With a list of local inputs, one `out_dir/raw_<n>.fif` per input, in input order
 - **`out_figs/annotations.png`**: annotation timeline (with several inputs, `out_figs/annotations_<n>.png`)
 - **`product.json`**: summary of applied rows, warnings, and the timelines (the first five when there are more inputs)
 
@@ -79,10 +79,10 @@ A row applies to an input only if **every** filled filter matches. Matching is c
 
 ### Running on Brainlife.io
 
-1. Select your raw MEG/EEG dataset(s) as the `raw` input.
+1. Select your raw MEG/EEG dataset as the `raw` input.
 2. Paste the annotation table into `annotations`, using filter columns to say which input each row is for.
 3. Optionally set `mode` and `strict`.
-4. Submit the process. To annotate many subjects with one table, run the app from a pipeline rule with the same `annotations` text.
+4. Submit the process. To annotate many subjects or runs with one table, create a pipeline rule that runs the app on every matching dataset with the same `annotations` text; the filter columns then decide which rows apply to each dataset.
 
 ### Local Testing
 
