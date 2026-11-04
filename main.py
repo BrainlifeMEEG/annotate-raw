@@ -309,10 +309,12 @@ for i, (fname, raw) in enumerate(zip(fnames, raws), start=1):
     out_path = os.path.join('out_dir', out_name)
     raw.save(out_path, overwrite=True)
 
-    # Output must reload, with the annotations we meant to write
+    # Output must reload without losing annotations. (MNE may legitimately add
+    # some on reload, e.g. for its reserved BAD_ACQ_SKIP descriptions, so only a
+    # shortfall is an error.)
     check = mne.io.read_raw_fif(out_path, verbose=False)
-    if len(check.annotations) != n_total:
-        _fail(f"Saved file {out_name} has {len(check.annotations)} annotation(s), expected {n_total}.")
+    if len(check.annotations) < n_total:
+        _fail(f"Saved file {out_name} has {len(check.annotations)} annotation(s), expected at least {n_total}.")
 
     if rows_i:
         add_info_to_product(

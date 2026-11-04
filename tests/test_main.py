@@ -318,3 +318,13 @@ def test_readme_example_table(tmp_path):
     assert annots(out(tmp_path, 1)) == [
         (0.0, 5.0, 'bad_startup', ()), (12.5, 2.0, 'bad_muscle', ()), (40.0, 1.0, 'bad_jump', ('MEG0113', 'MEG0112'))]
     assert annots(out(tmp_path, 2)) == [(12.5, 2.0, 'bad_muscle', ())]
+
+
+def test_mne_reserved_description_does_not_fail_output_check(tmp_path):
+    """MNE rewrites BAD_ACQ_SKIP descriptions specially; the app must still succeed."""
+    pre = mne.Annotations([3.0, 20.0], [1.0, 4.0], ['BAD_acq_skip', 'old_muscle'], orig_time=None)
+    f = make_raw(tmp_path / 'raw.fif', annotations=pre)
+    proc, _ = run_app(tmp_path, {'raw': f, 'annotations': 'onset,duration,description\n40,1,new'})
+    assert proc.returncode == 0, proc.stderr
+    descs = [a[2] for a in annots(tmp_path / 'out_dir' / 'raw.fif')]
+    assert 'new' in descs and 'old_muscle' in descs

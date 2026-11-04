@@ -99,7 +99,7 @@ python -m pytest tests
 - **Time reference**: `onset` is seconds from the first sample (`mne.Annotations(orig_time=None)`), independent of `meas_date`. Annotations already in the file are converted to the same frame before being combined, so `append` does not shift them.
 - **Out-of-range rows**: a row starting after the end of a recording is dropped for it and one running past the end is cut, each with a warning (an error with `strict`).
 - **Unmatched rows**: a row matching none of the inputs is reported, which catches typos in filters.
-- **Output check**: each saved file is re-read with `mne.io.read_raw_fif` and its annotation count verified before the app exits successfully.
+- **Output check**: each saved file is re-read with `mne.io.read_raw_fif` and checked to have lost no annotation before the app exits successfully.
 
 ## Limitations
 
