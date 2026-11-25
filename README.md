@@ -1,5 +1,48 @@
 # Annotate MEG/EEG Raw Data from a Table
 
+<!-- brainlife-app:begin (generated from the App manifest; edit the manifest, not this block) -->
+
+> **Adds annotations to raw MEG/EEG data with MNE-Python from a table whose rows can be scoped by subject, session, task, run, tag or dataset, and outputs the annotated raw .fif.**
+
+Parses a delimited annotation table (onset, duration, description, optional channels and filter columns), applies the rows that match the input's identity, and sets them with raw.set_annotations, appending to or replacing existing annotations. Use it to apply one shared table of bad segments or events across many recordings. strict turns unmatched or out-of-range rows into errors.
+
+| | |
+|---|---|
+| 📥 **Inputs** | `neuro/meeg/mne/raw` |
+| 📤 **Outputs** | `neuro/meeg/mne/raw` |
+| 🐳 **Container** | `brainlifemeeg/mne:1.12.1` |
+| ⚙️ **Resources** | 1 CPUs · 20 GB memory |
+| 🔗 **Run it** | [doi.org/10.25663/brainlife.app.994](https://doi.org/10.25663/brainlife.app.994) |
+
+#### 📥 Inputs
+
+| Input | Datatype | Required | Description |
+|---|---|---|---|
+| `raw` | `neuro/meeg/mne/raw` | yes | Raw MEG/EEG data to annotate. |
+
+#### 📤 Outputs
+
+| Output | Datatype | Description |
+|---|---|---|
+| `out_dir` | `neuro/meeg/mne/raw` | Raw data with the annotations from the table added. |
+
+<details>
+<summary><b>⚙️ Parameters</b> (3)</summary>
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `annotations` | string |  | Annotation table, one annotation per row, with a header row. Required columns: onset (s from first sample), duration (s), description. Optional: channels (separated by ; or \|), and filter columns subject, session, task, run, tag, dataset_id restricting the row to matching inputs (wildcards * ? [12], or re:<regex>). Rows without filters apply to every input. Delimiter: comma or tab. |
+| `mode` | enum | `append` | append keeps the annotations already in the file; replace discards them (only for inputs that at least one table row applies to). Options: `append`, `replace`. |
+| `strict` | boolean | `false` | Treat a row that matches no input, or lies outside the recording, as an error instead of a warning. |
+
+</details>
+
+📚 **References used by this App:**
+- Hayashi S, Caron BA, Heinsfeld AS, et al. brainlife.io: a decentralized and open-source cloud platform to support neuroscience research. Nat Methods 21:809-813 (2024). [doi:10.1038/s41592-024-02237-2](https://doi.org/10.1038/s41592-024-02237-2)
+- Gramfort A, et al. MEG and EEG data analysis with MNE-Python. Front Neurosci 7:267 (2013). [doi:10.3389/fnins.2013.00267](https://doi.org/10.3389/fnins.2013.00267)
+
+<!-- brainlife-app:end -->
+
 [![Run on Brainlife.io](https://img.shields.io/badge/Brainlife-annotate--raw-blue.svg)](https://brainlife.io/app/6aeba162e5002a0fe6b0eef1)
 
 ## Description
