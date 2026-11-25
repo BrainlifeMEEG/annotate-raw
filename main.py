@@ -23,7 +23,9 @@ Inputs:
 Outputs:
     - out_dir/raw.fif (or out_dir/raw_<n>.fif per input when several are given)
     - out_figs/annotations.png (or annotations_<n>.png): annotation timeline
-    - product.json: which rows were applied to which input, and any warnings
+    - product.json: which rows were applied to which input, any warnings, and a
+      table per input of its final annotations in the input table's columns
+      (onset, duration, description, channels)
 """
 
 # Copyright (c) 2026 brainlife.io
@@ -54,6 +56,7 @@ from brainlife_utils import (
     create_product_json,
     add_info_to_product,
     add_image_to_product,
+    add_plotly_to_product,
     add_raw_info_to_product,
     get_input_identities,
     match_filters,
@@ -72,8 +75,11 @@ config = load_config()
 
 REQUIRED_COLUMNS = ('onset', 'duration', 'description')
 FILTER_COLUMNS = ('subject', 'session', 'task', 'run', 'tag', 'dataset_id')
-ALLOWED_COLUMNS = REQUIRED_COLUMNS + ('channels',) + FILTER_COLUMNS
+TABLE_COLUMNS = REQUIRED_COLUMNS + ('channels',)
+ALLOWED_COLUMNS = TABLE_COLUMNS + FILTER_COLUMNS
 MAX_EMBEDDED_FIGURES = 5   # keep product.json well under its 1 MB limit
+MAX_EMBEDDED_TABLES = 5
+MAX_TABLE_ROWS = 200       # per embedded table; files can carry thousands of annotations
 MAX_LISTED_ERRORS = 15
 
 COLOR_EXISTING = '#2a78d6'
@@ -103,6 +109,25 @@ def _label(identity):
 
 def _describe_filters(filters):
     return ', '.join(f"{k}={v}" for k, v in filters.items()) if filters else 'no filters'
+
+
+def _format_seconds(value):
+    """Seconds as plain decimal text (no exponent, no trailing zeros), like an input table cell."""
+    return f"{value:.6f}".rstrip('0').rstrip('.') or '0'
+
+
+def _annotations_to_columns(annotations, first_time):
+    """Annotations as the columns of an input table: onset, duration, description, channels.
+
+    Onsets are seconds from the first sample (the frame the input table uses) and channels
+    are joined with ';', so a row reads exactly like a row of the 'annotations' parameter.
+    """
+    return [
+        [_format_seconds(onset - first_time) for onset in annotations.onset],
+        [_format_seconds(duration) for duration in annotations.duration],
+        [str(description) for description in annotations.description],
+        [';'.join(ch_names) for ch_names in annotations.ch_names],
+    ]
 
 
 # == VALIDATE CONFIG ==
@@ -340,6 +365,29 @@ for i, (fname, raw) in enumerate(zip(fnames, raws), start=1):
     if len(fnames) == 1:
         add_raw_info_to_product(product_items, raw)
 
+    # Final annotations of the saved file, laid out like the input table
+    if n_total and i <= MAX_EMBEDDED_TABLES:
+        columns = _annotations_to_columns(check.annotations, check.first_time)
+        n_shown = min(n_total, MAX_TABLE_ROWS)
+        add_plotly_to_product(
+            product_items,
+            name=f"Final annotations: {labels[i - 1]}",
+            data=[{
+                'type': 'table',
+                'columnwidth': [1, 1, 3, 3],
+                'header': {'values': list(TABLE_COLUMNS), 'align': 'left', 'height': 28,
+                           'fill': {'color': '#eeeeee'}},
+                'cells': {'values': [column[:n_shown] for column in columns], 'align': 'left',
+                          'height': 24},
+            }],
+            layout={'height': min(600, 28 + 24 * n_shown + 20),
+                    'margin': {'l': 5, 'r': 5, 't': 5, 'b': 5}})
+        if n_shown < n_total:
+            add_info_to_product(
+                product_items,
+                f"Input {i} ({labels[i - 1]}): the table shows the first {n_shown} of {n_total} "
+                f"annotations in {out_name}.")
+
     # Timeline: one lane per description, existing vs added
     added = [(r['onset'], r['duration'], r['description']) for r in rows_i]
     lanes = sorted({d for _, _, d in kept} | {d for _, _, d in added})
@@ -376,6 +424,10 @@ if len(fnames) > MAX_EMBEDDED_FIGURES:
         product_items,
         f"Showing timelines for the first {MAX_EMBEDDED_FIGURES} of {len(fnames)} inputs; "
         "all are saved in out_figs/.")
+if len(fnames) > MAX_EMBEDDED_TABLES:
+    add_info_to_product(
+        product_items,
+        f"Showing annotation tables for the first {MAX_EMBEDDED_TABLES} of {len(fnames)} inputs.")
 
 # == CREATE PRODUCT JSON ==
 create_product_json(product_items)

@@ -11,7 +11,7 @@ Annotations are built with `mne.Annotations` and set with `raw.set_annotations`.
 The app generates:
 - The raw data with the annotations added (or replaced)
 - A timeline figure per input showing the annotations already in the file and the ones added
-- A `product.json` listing which table rows were applied to which input, with warnings for rows that matched nothing
+- A `product.json` listing which table rows were applied to which input, with warnings for rows that matched nothing, and a table of the final annotations of each output file (see Outputs)
 
 ## Inputs
 
@@ -21,7 +21,7 @@ The app generates:
 
 - **`out_dir/raw.fif`** (`neuro/meeg/mne/raw`, tag `annotated`): the annotated raw data. With a list of local inputs, one `out_dir/raw_<n>.fif` per input, in input order
 - **`out_figs/annotations.png`**: annotation timeline (with several inputs, `out_figs/annotations_<n>.png`)
-- **`product.json`**: summary of applied rows, warnings, and the timelines (the first five when there are more inputs)
+- **`product.json`**: summary of applied rows, warnings, the timelines, and one **Final annotations** table per input (the first five when there are more inputs). The table lists every annotation in the saved file, existing and added, with the columns `onset`, `duration`, `description`, `channels` laid out like the input table: onset in seconds from the first sample, channels joined with `;`. The first 200 annotations are shown; a message gives the total when there are more
 
 ## Configuration Parameters
 

@@ -340,3 +340,77 @@ def test_missing_or_unreadable_raw_exits_cleanly(tmp_path):
     proc, msgs = run_app(tmp_path, {'raw': str(tmp_path / 'garbage.fif'), 'annotations': table})
     assert proc.returncode == 1 and 'Traceback' not in proc.stderr
     assert any('could not be read' in m for m in messages(msgs, 'error'))
+
+
+# -- final annotations table in product.json ---------------------------------
+
+def tables(tmp_path):
+    """{tab name: list of rows (onset, duration, description, channels)} for the plotly table items."""
+    product = json.loads((tmp_path / 'product.json').read_text())['brainlife']
+    found = {}
+    for item in product:
+        if item['type'] == 'plotly' and item['data'][0]['type'] == 'table':
+            trace = item['data'][0]
+            assert trace['header']['values'] == ['onset', 'duration', 'description', 'channels']
+            found[item['name']] = list(zip(*trace['cells']['values']))
+    return found
+
+
+def test_final_table_lists_existing_and_added_annotations(tmp_path):
+    """The table is the saved file's annotations, in the input table's columns and time frame,
+    whether or not the recording has a meas_date and starts at sample 0."""
+    for meas_date in (True, False):
+        pre = mne.Annotations([20.0], [4.0], ['old_muscle'], orig_time=None)
+        f = make_raw(tmp_path / 'raw.fif', meas_date=meas_date, first_samp=1234, annotations=pre)
+        table = 'onset,duration,description,channels\n12.5,2,bad-jump,MEG0111;MEG0112\n30.125,0,blink,'
+        proc, _ = run_app(tmp_path, {'raw': f, 'annotations': table})
+        assert proc.returncode == 0, proc.stderr
+        assert tables(tmp_path) == {'Final annotations: raw.fif': [
+            ('12.5', '2', 'bad-jump', 'MEG0111;MEG0112'),
+            ('20', '4', 'old_muscle', ''),
+            ('30.125', '0', 'blink', '')]}
+
+
+def test_final_table_can_be_fed_back_as_an_input_table(tmp_path):
+    f = make_raw(tmp_path / 'first.fif')
+    table = 'onset,duration,description,channels\n12.5,2,bad-jump,MEG0111;MEG0112\n30.125,0.5,blink,\n'
+    proc, _ = run_app(tmp_path, {'raw': f, 'annotations': table})
+    assert proc.returncode == 0, proc.stderr
+    (rows,) = tables(tmp_path).values()
+    expected = annots(tmp_path / 'out_dir' / 'raw.fif')
+
+    again = make_raw(tmp_path / 'again.fif')
+    pasted = 'onset,duration,description,channels\n' + '\n'.join(','.join(r) for r in rows)
+    proc, _ = run_app(tmp_path, {'raw': again, 'annotations': pasted})
+    assert proc.returncode == 0, proc.stderr
+    assert annots(tmp_path / 'out_dir' / 'raw.fif') == expected
+
+
+def test_final_table_per_input_reflects_that_inputs_annotations(tmp_path, two_inputs):
+    files, inputs = two_inputs
+    table = f'{HEADER}\n01,,,,5,1,only_first,\n,,,,10,2,both,'
+    proc, _ = run_app(tmp_path, cfg_for(files, inputs, table))
+    assert proc.returncode == 0, proc.stderr
+    assert tables(tmp_path) == {
+        'Final annotations: sub-01 run-1 [rest]': [('5', '1', 'only_first', ''), ('10', '2', 'both', '')],
+        'Final annotations: sub-02 run-2 [task, Run2]': [('10', '2', 'both', '')]}
+
+
+def test_final_table_is_capped_and_says_so(tmp_path):
+    n = 450
+    pre = mne.Annotations(np.arange(n) * 0.1, [0.01] * n, ['evt'] * n, orig_time=None)
+    f = make_raw(tmp_path / 'raw.fif', annotations=pre)
+    proc, msgs = run_app(tmp_path, {'raw': f, 'annotations': 'onset,duration,description\n55,1,late'})
+    assert proc.returncode == 0, proc.stderr
+    (rows,) = tables(tmp_path).values()
+    assert len(rows) == 200
+    assert any('first 200 of 451' in m for m in messages(msgs, 'info'))
+    assert (tmp_path / 'product.json').stat().st_size < 300_000
+
+
+def test_no_table_when_output_has_no_annotations(tmp_path):
+    f = make_raw(tmp_path / 'raw.fif')
+    table = f'{HEADER}\n99,,,,5,1,nobody,'
+    proc, _ = run_app(tmp_path, {'raw': f, 'annotations': table})
+    assert proc.returncode == 0, proc.stderr
+    assert tables(tmp_path) == {}
